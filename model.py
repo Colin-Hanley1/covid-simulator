@@ -6,15 +6,15 @@ import csv
 import random
 
 try:
-    # Remove StatusDisplayAgent from imports
-    from .agent import PersonAgent, WorkplaceMarkerAgent, HomeMarkerAgent
+    from .agent import PersonAgent, WorkplaceMarkerAgent, HomeMarkerAgent # StatusDisplayAgent removed
 except ImportError:
-    from agent import PersonAgent, WorkplaceMarkerAgent, HomeMarkerAgent # StatusDisplayAgent removed
+    from agent import PersonAgent, WorkplaceMarkerAgent, HomeMarkerAgent
 
 
 class InfectionModel(Model):
     def __init__(self, width=50, height=50,
-                 max_days=150, infection_rate=0.05, masking_rate=0.1,
+                 max_days=150, infection_rate=0.05, 
+                 # masking_rate no longer used for init, agents decide dynamically
                  daily_vaccination_target_percentage=0.01,
                  natural_immunity_duration=180, vaccine_immunity_duration=150,
                  severity_multiplier=1.0, vaccine_escape_sus_factor=0.0,
@@ -27,7 +27,16 @@ class InfectionModel(Model):
                  vaccine_transmission_reduction_infector_waned=0.7,
                  vaccine_susceptibility_reduction_susceptible_waned=0.6,
                  vaccine_mortality_reduction_waned=0.4, essential_worker_rate=0.3,
-                 lockdown_infection_threshold_percentage=0.1
+                 lockdown_infection_threshold_percentage=0.1,
+                 # New parameters for behavioral modeling
+                 avg_mask_propensity_normal=0.3,
+                 avg_mask_propensity_lockdown=0.8,
+                 masking_risk_threshold=0.1, # Perceived local risk (0-1) to increase masking
+                 risk_perception_radius=1, # Moore neighborhood radius for local risk
+                 avg_prop_voluntary_isolation=0.25, # Avg propensity of essential workers to isolate if risk is high
+                 voluntary_isolation_risk_threshold=0.5, # Perceived local risk to consider voluntary isolation
+                 avg_lockdown_compliance=0.9, # Average propensity to comply with lockdown
+                 avg_vaccine_willingness=0.7 # Average base willingness to vaccinate
                  ):
 
         super().__init__()
@@ -38,12 +47,10 @@ class InfectionModel(Model):
         self.person_agent_next_id = 0
         self.workplace_marker_next_id = -1 
         self.home_marker_next_id = -10000 
-        # self.status_display_agent_id = -20000 # REMOVED
-
         self.cumulative_deaths = 0 
 
         self.infection_rate = infection_rate
-        self.masking_rate = masking_rate
+        # self.masking_rate = masking_rate # Replaced by dynamic agent masking
         self.daily_vaccination_target_percentage = daily_vaccination_target_percentage
         self.natural_immunity_duration = natural_immunity_duration
         self.vaccine_immunity_duration = vaccine_immunity_duration
@@ -70,6 +77,17 @@ class InfectionModel(Model):
         self.lockdown_duration_days = 14 
         self.lockdown_end_day = -1 
 
+        # Store new behavioral parameters
+        self.avg_mask_propensity_normal = avg_mask_propensity_normal
+        self.avg_mask_propensity_lockdown = avg_mask_propensity_lockdown
+        self.masking_risk_threshold = masking_risk_threshold
+        self.risk_perception_radius = risk_perception_radius
+        self.avg_prop_voluntary_isolation = avg_prop_voluntary_isolation
+        self.voluntary_isolation_risk_threshold = voluntary_isolation_risk_threshold
+        self.avg_lockdown_compliance = avg_lockdown_compliance
+        self.avg_vaccine_willingness = avg_vaccine_willingness
+
+
         self.max_days = max_days
         self.day = 0
         self.running = True
@@ -78,8 +96,9 @@ class InfectionModel(Model):
         with open(self.csv_filename, "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["Day", "Susceptible", "Infected", "Recovered", "Dead",
-                             "Vaccinated (Any)", "Vaccine Effective", "Asymptomatic", "LockdownActive"])
+                             "Vaccinated (Any)", "Vaccine Effective", "Asymptomatic", "LockdownActive", "AvgMasked"])
 
+        # Workplace and Household Generation (same as before)
         self.workplaces = [] 
         attempts = 0
         actual_num_workplaces = min(self.num_workplaces, self.width * self.height)
@@ -115,7 +134,7 @@ class InfectionModel(Model):
                 agent.home_pos = current_home_pos; agent.assign_work_location() 
                 if self.random.random() < 0.02:
                      agent.state = "Infected"; agent.asymptomatic = self.random.random() < self.asymptomatic_rate
-                agent.masked = self.random.random() < self.masking_rate
+                # agent.masked is now decided in agent.step()
                 self.grid.place_agent(agent, current_home_pos); self.schedule.add(agent)
                 person_agents_created_count += 1
         if person_agents_created_count == 0 and num_person_agents_to_create > 0:
@@ -123,26 +142,24 @@ class InfectionModel(Model):
         for i, home_pos_coord in enumerate(self.home_locations):
             home_marker = HomeMarkerAgent(self.home_marker_next_id - i, self)
             self.grid.place_agent(home_marker, home_pos_coord)
-
-        # REMOVED: StatusDisplayAgent creation and placement
-        # status_agent = StatusDisplayAgent(self.status_display_agent_id, self)
-        # status_agent_pos = (0, self.height -1) 
-        # self.grid.place_agent(status_agent, status_agent_pos)
-        # self.schedule.add(status_agent)
-
+        
         self.datacollector = DataCollector(
             model_reporters={
                 "Susceptible": lambda m: m.count_state("Susceptible"),
                 "Infected": lambda m: m.count_state("Infected"),
                 "Recovered": lambda m: m.count_state("Recovered"),
                 "Dead": lambda m: m.count_state("Dead"), 
-                "Vaccinated (Any)": lambda m: self.count_vaccinated(),
-                "Vaccine Effective": lambda m: self.count_vaccine_effective(),
+                "Vaccinated (Any)": lambda m: m.count_vaccinated(),
+                "Vaccine Effective": lambda m: m.count_vaccine_effective(),
                 "Asymptomatic": lambda m: self.count_asymptomatic(),
-                "LockdownActive": lambda m: 1 if m.lockdown_active else 0
+                "LockdownActive": lambda m: 1 if m.lockdown_active else 0,
+                "AvgMasked": lambda m: m.count_masked_person_agents() / (sum(1 for _ in m.schedule.agents if isinstance(_, PersonAgent)) or 1) # Avg masked
             }
         )
         self.datacollector.collect(self)
+
+    def count_masked_person_agents(self): # New helper
+        return sum(1 for agent in self.schedule.agents if isinstance(agent, PersonAgent) and agent.masked)
 
     def count_state(self, state_name):
         return sum(1 for agent in self.schedule.agents if isinstance(agent, PersonAgent) and agent.state == state_name)
@@ -162,21 +179,29 @@ class InfectionModel(Model):
         ]
         if not eligible_candidates: return
         self.random.shuffle(eligible_candidates)
+        
         num_person_agents = sum(1 for agent in self.schedule.agents if isinstance(agent, PersonAgent))
         if num_person_agents == 0: return
+
         num_to_target_today = int(num_person_agents * self.daily_vaccination_target_percentage)
         actually_vaccinated_this_step = 0
         for agent in eligible_candidates:
             if actually_vaccinated_this_step >= num_to_target_today: break
-            agent.vaccinated = True; agent.vaccine_waned = False; agent.days_since_vaccination = 0
-            actually_vaccinated_this_step += 1
+            if self.random.random() < agent.get_current_vaccine_willingness(): # Check willingness
+                agent.vaccinated = True; agent.vaccine_waned = False; agent.days_since_vaccination = 0
+                actually_vaccinated_this_step += 1
+        # if actually_vaccinated_this_step > 0:
+        #     print(f"Day {self.day}: Targeted {num_to_target_today}, newly vaccinated {actually_vaccinated_this_step} agents based on willingness.")
+
 
     def introduce_migrants(self):
         for _ in range(self.num_migrants_per_event):
             migrant_agent = PersonAgent(self.person_agent_next_id, self); self.person_agent_next_id += 1
             migrant_agent.state = "Infected"
             migrant_agent.asymptomatic = self.random.random() < self.asymptomatic_rate; migrant_agent.days_infected = 0
-            migrant_agent.masked = False; migrant_agent.vaccinated = False
+            # Migrants might have different behavioral propensities or get default ones
+            migrant_agent.masked = self.random.random() < self.avg_mask_propensity_normal # Use avg as a proxy
+            migrant_agent.vaccinated = False
             x, y = self.random.randrange(self.grid.width), self.random.randrange(self.grid.height)
             migrant_agent.home_pos = (x,y); self.grid.place_agent(migrant_agent, (x,y))
             migrant_agent.assign_work_location(); self.schedule.add(migrant_agent)
@@ -184,11 +209,13 @@ class InfectionModel(Model):
     def write_csv_log(self):
         with open(self.csv_filename, "a", newline="") as f:
             writer = csv.writer(f)
+            num_person_agents = sum(1 for _ in self.schedule.agents if isinstance(_, PersonAgent)) or 1
             writer.writerow([
                 self.day, self.count_state("Susceptible"), self.count_state("Infected"),
                 self.count_state("Recovered"), self.count_state("Dead"), 
                 self.count_vaccinated(), self.count_vaccine_effective(),
-                self.count_asymptomatic(), 1 if self.lockdown_active else 0
+                self.count_asymptomatic(), 1 if self.lockdown_active else 0,
+                self.count_masked_person_agents() / num_person_agents # Log average masked
             ])
 
     def step(self):
@@ -201,14 +228,13 @@ class InfectionModel(Model):
                 print(f"Day {self.day}: LOCKDOWN INITIATED. Ends on day {self.lockdown_end_day}. Infected: {current_infected_percentage*100:.2f}%")
         
         if self.lockdown_active and self.day >= self.lockdown_end_day:
-            self.lockdown_active = False
-            self.lockdown_end_day = -1 
+            self.lockdown_active = False; self.lockdown_end_day = -1 
             print(f"Day {self.day}: LOCKDOWN ENDED.")
 
         if self.random.random() < self.migration_event_probability: self.introduce_migrants()
         self.perform_daily_vaccination()
         
-        self.schedule.step() # PersonAgents will step. StatusDisplayAgent was removed from schedule.
+        self.schedule.step() # PersonAgents update behavior (masking) and then state, movement, infection
 
         self.datacollector.collect(self)
         self.write_csv_log()
