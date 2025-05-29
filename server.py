@@ -59,8 +59,7 @@ chart = ChartModule([
     {"Label": "Susceptible", "Color": "blue"}, {"Label": "Infected", "Color": "red"},
     {"Label": "Recovered", "Color": "green"}, {"Label": "Dead", "Color": "black"},
     {"Label": "Vaccinated (Any)", "Color": "orange"}, {"Label": "Vaccine Effective", "Color": "darkorange"},
-    {"Label": "Asymptomatic", "Color": "purple"},
-    {"Label": "LockdownActive", "Color": "gray"} # Keeping this chart line
+    {"Label": "Asymptomatic", "Color": "purple"}
 ], data_collector_name='datacollector')
 
 model_params = {
