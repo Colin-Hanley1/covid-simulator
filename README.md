@@ -36,6 +36,7 @@ The project primarily consists of the following Python files:
 * `agent.py`: Defines the agent classes (`PersonAgent`, `WorkplaceMarkerAgent`, `HomeMarkerAgent`).
 * `model.py`: Defines the main `InfectionModel` class, orchestrating the simulation.
 * `server.py`: Sets up the Mesa `ModularServer` for web-based visualization and user interaction.
+* `run.py`
 
 ## 4. Requirements
 
@@ -68,7 +69,7 @@ The project primarily consists of the following Python files:
 2.  **Run the Mesa Server:**
     Execute the following command:
     ```bash
-    mesa runserver
+    python3 run.py
     ```
 
 3.  **Access the Visualization:**
