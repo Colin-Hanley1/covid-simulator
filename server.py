@@ -65,16 +65,16 @@ chart = ChartModule([
 model_params = {
     "width": NEW_GRID_WIDTH, "height": NEW_GRID_HEIGHT,
     "max_days": Slider("Max Sim Days", 365, 10, 730, 5),
-    "infection_rate": Slider("Disease: Infection Rate", 0.05, 0.01, 0.5, 0.01),
-    "severity_multiplier": Slider("Disease: Severity Multiplier (Fatality)", 1.0, 0.1, 10.0, 0.1),
+    "infection_rate": Slider("Infectivity", 0.05, 0.01, 0.5, 0.01),
+    "severity_multiplier": Slider("Virulence Multiplier", 1.0, 0.1, 10.0, 0.1),
     "masking_rate": Slider("Initial Masking Rate", 0.0, 0.0, 1.0, 0.05),
-    "daily_vaccination_target_percentage": Slider("Daily Vax Target (% of total pop)", 0.00, 0.0, 0.1, 0.001),
+    "daily_vaccination_target_percentage": Slider("Daily Vaccination Rate", 0.00, 0.0, 0.1, 0.001),
     "natural_immunity_duration": Slider("Natural Immunity Duration (days)", 180, 0, 360, 10),
-    "vaccine_immunity_duration": Slider("Vaccine Immunity Duration (days to wane)", 180, 0, 360, 10),
+    "vaccine_immunity_duration": Slider("Vaccine Immunity Duration (days)", 180, 0, 360, 10),
     "lockdown_infection_threshold_percentage": Slider("Lockdown Threshold (1 = No Lockdown)", 0.10, 0.01, 1, 0.01),
     "migration_event_probability": Slider("Migration Event Prob/Day", 0.05, 0.0, 0.5, 0.01),
     "num_migrants_per_event": NumberInput("Num. Infected Migrants per Event", value=1),
-    "density": Slider("Agent Density", 0.8, 0.1, 0.9, 0.05)
+    "density": Slider("Population Density", 0.8, 0.1, 0.9, 0.05)
 }
 
 server = ModularServer(
