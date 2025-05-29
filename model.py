@@ -74,7 +74,7 @@ class InfectionModel(Model):
         self.day = 0
         self.running = True
 
-        self.csv_filename = "simulation_log_no_status_text.csv" 
+        self.csv_filename = "simulation_log.csv" 
         with open(self.csv_filename, "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["Day", "Susceptible", "Infected", "Recovered", "Dead",

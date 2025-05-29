@@ -64,7 +64,7 @@ chart = ChartModule([
 
 model_params = {
     "width": NEW_GRID_WIDTH, "height": NEW_GRID_HEIGHT,
-    "max_days": Slider("Max Sim Days", 365, 10, 730, 10),
+    "max_days": Slider("Max Sim Days", 365, 10, 730, 5),
     "infection_rate": Slider("Disease: Infection Rate", 0.05, 0.01, 0.5, 0.01),
     "severity_multiplier": Slider("Disease: Severity Multiplier (Fatality)", 1.0, 0.1, 10.0, 0.1),
     "masking_rate": Slider("Initial Masking Rate", 0.0, 0.0, 1.0, 0.05),
