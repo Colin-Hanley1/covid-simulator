@@ -107,11 +107,11 @@ model_params = {
     "density": Slider("Agent Density", 0.8, 0.1, 0.9, 0.05), # Controls total initial agent count
 
     # Simulation Control
-    "max_days": Slider("Max Sim Days", 150, 50, 365, 10),
+    "max_days": Slider("Max Sim Days", 10, 365, 730, 5),
     
     # Core Disease Characteristics (Single Disease Type)
-    "infection_rate": Slider("Disease: Infection Rate", 0.05, 0.01, 0.3, 0.01),
-    "severity_multiplier": Slider("Disease: Severity Multiplier (Fatality)", 1.0, 0.5, 3.0, 0.1),
+    "infection_rate": Slider("Infectivity", 0.05, 0.01, 0.95, 0.01),
+    "severity_multiplier": Slider("Virulence Multiplier", 1.0, 0.5, 10.0, 0.1),
     "vaccine_escape_sus_factor": Slider("Disease: Vax Escape (Susceptibility)", 0.0, 0.0, 1.0, 0.05),
     "vaccine_escape_trans_factor": Slider("Disease: Vax Escape (Transmission)", 0.0, 0.0, 1.0, 0.05),
     
@@ -122,16 +122,16 @@ model_params = {
     "risk_perception_radius": NumberInput("Risk Perception Radius (cells)", value=1), # Ensure NumberInput args are compatible
 
     # Vaccination Behavior
-    "daily_vaccination_target_percentage": Slider("Daily Vax Target (% of total pop)", 0.01, 0.0, 0.05, 0.001),
+    "daily_vaccination_target_percentage": Slider("Daily Vaccination (% of total pop)", 0.01, 0.0, 0.05, 0.001),
     "avg_vaccine_willingness": Slider("Avg. Vaccine Willingness", 0.7, 0.0, 1.0, 0.05),
     
     # Immunity Dynamics
     "natural_immunity_duration": Slider("Natural Immunity Duration (days)", 180, 60, 360, 10),
-    "vaccine_immunity_duration": Slider("Vaccine Immunity Duration (days to wane)", 150, 60, 300, 10),
+    "vaccine_immunity_duration": Slider("Vaccine Immunity Duration (days)", 150, 60, 300, 10),
     
     # Lockdown Mechanism
     "lockdown_infection_threshold_percentage": Slider("Lockdown Threshold (% Infected)", 0.10, 0.01, 0.5, 0.01),
-    "avg_lockdown_compliance": Slider("Avg. Lockdown Compliance Propensity", 0.9, 0.0, 1.0, 0.05),
+    "avg_lockdown_compliance": Slider("Avg. Lockdown Compliance", 0.9, 0.0, 1.0, 0.05),
 
     # Voluntary Behavior Changes
     "avg_prop_voluntary_isolation": Slider("Avg. Prop. Voluntary Isolation (Essential, High Risk)", 0.25, 0.0, 1.0, 0.05),
